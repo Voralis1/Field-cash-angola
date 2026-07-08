@@ -1,0 +1,205 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase-browser";
+import { TopBar, Toast } from "@/components/UI";
+import TabBar from "@/components/TabBar";
+import { fmt, todayISO, CURRENCY, COUNTRY, type Delivery } from "@/lib/helpers";
+
+export default function DeliveriesPage() {
+  const [date, setDate] = useState(todayISO());
+  const [agent, setAgent] = useState("");
+  const [amount, setAmount] = useState("");
+  const [agentsCount, setAgentsCount] = useState("1");
+  const [pending, setPending] = useState<{ agent: string; amount: number }[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; kind?: "ok" | "err" } | null>(null);
+  const [today, setToday] = useState<Delivery[]>([]);
+
+  const loadToday = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("field_deliveries")
+      .select("*")
+      .eq("delivery_date", date)
+      .order("created_at", { ascending: true });
+    setToday((data as Delivery[]) ?? []);
+  }, [date]);
+
+  useEffect(() => {
+    loadToday();
+  }, [loadToday]);
+
+  function addLine() {
+    const v = Number(amount.replace(/\s/g, ""));
+    if (!v || v <= 0) {
+      setToast({ msg: "Montant invalide", kind: "err" });
+      return;
+    }
+    setPending((p) => [...p, { agent: agent.trim() || "Agent", amount: v }]);
+    setAmount("");
+  }
+
+  function removeLine(i: number) {
+    setPending((p) => p.filter((_, idx) => idx !== i));
+  }
+
+  async function saveAll() {
+    if (pending.length === 0) {
+      setToast({ msg: "Aucune livraison à enregistrer", kind: "err" });
+      return;
+    }
+    setSaving(true);
+    const supabase = createClient();
+
+    const rows = pending.map((p) => ({
+      country: COUNTRY,
+      delivery_date: date,
+      agent: p.agent,
+      amount_collected: p.amount,
+    }));
+
+    const { error } = await supabase.from("field_deliveries").insert(rows);
+
+    // upsert the number of active agents for that day (drives fuel cost)
+    if (!error) {
+      await supabase
+        .from("field_agent_days")
+        .upsert(
+          { country: COUNTRY, work_date: date, agents_count: Number(agentsCount) || 1 },
+          { onConflict: "country,work_date" }
+        );
+    }
+
+    setSaving(false);
+    if (error) {
+      setToast({ msg: "Erreur d'enregistrement", kind: "err" });
+      return;
+    }
+    setPending([]);
+    setToast({ msg: `${rows.length} livraison(s) enregistrée(s)` });
+    loadToday();
+  }
+
+  const pendingTotal = pending.reduce((s, p) => s + p.amount, 0);
+  const savedTotal = today.reduce((s, d) => s + Number(d.amount_collected), 0);
+
+  return (
+    <div className="shell">
+      <TopBar title="Livraisons" />
+      <div className="page">
+        <div className="split">
+          <div className="panel-form">
+            <div className="card">
+              <div className="row2">
+                <label className="field" style={{ marginBottom: 0 }}>
+                  <span className="cap">Date</span>
+                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                </label>
+                <label className="field" style={{ marginBottom: 0 }}>
+                  <span className="cap">Agents actifs</span>
+                  <input
+                    type="number"
+                    min={1}
+                    className="mono"
+                    value={agentsCount}
+                    onChange={(e) => setAgentsCount(e.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="section-title" style={{ margin: "0 0 10px" }}>
+                Ajouter une livraison encaissée
+              </div>
+              <label className="field">
+                <span className="cap">Agent</span>
+                <input
+                  value={agent}
+                  onChange={(e) => setAgent(e.target.value)}
+                  placeholder="Nom de l'agent"
+                />
+              </label>
+              <label className="field">
+                <span className="cap">Montant encaissé ({CURRENCY})</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  className="mono"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addLine()}
+                  placeholder="0"
+                />
+              </label>
+              <button className="btn ghost" onClick={addLine}>
+                + Ajouter à la liste
+              </button>
+
+              {pending.length > 0 && (
+                <div className="items" style={{ marginTop: 14 }}>
+                  {pending.map((p, i) => (
+                    <div className="item" key={i}>
+                      <span className="n">{i + 1}</span>
+                      <span className="amt mono">
+                        {fmt(p.amount)} {CURRENCY}
+                      </span>
+                      <span style={{ fontSize: "0.78rem", color: "var(--ink-soft)" }}>{p.agent}</span>
+                      <button className="x" onClick={() => removeLine(i)} aria-label="Retirer">
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <div
+                    className="mono"
+                    style={{ textAlign: "right", fontWeight: 800, padding: "6px 4px" }}
+                  >
+                    Total : {fmt(pendingTotal)} {CURRENCY}
+                  </div>
+                </div>
+              )}
+
+              <button
+                className="btn"
+                onClick={saveAll}
+                disabled={saving || pending.length === 0}
+                style={{ marginTop: 10 }}
+              >
+                {saving ? "Enregistrement…" : `Enregistrer ${pending.length || ""}`.trim()}
+              </button>
+            </div>
+          </div>
+
+          <div className="panel-list">
+            <div className="section-title">
+              Déjà enregistré le {date} · {fmt(savedTotal)} {CURRENCY}
+            </div>
+            {today.length === 0 ? (
+              <div className="empty">
+                <div className="big">Aucune livraison ce jour</div>
+                <div className="small">Ajoute les montants encaissés ci-dessus.</div>
+              </div>
+            ) : (
+              <div className="ledger">
+                {today.map((d) => (
+                  <div className="lrow" key={d.id}>
+                    <div className="meta">
+                      <span className="t">{d.agent || "Agent"}</span>
+                      <span className="d">Livraison encaissée</span>
+                    </div>
+                    <span className="amt mono">
+                      {fmt(Number(d.amount_collected))} {CURRENCY}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {toast && <Toast msg={toast.msg} kind={toast.kind} onDone={() => setToast(null)} />}
+      <TabBar />
+    </div>
+  );
+}
