@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase-browser";
 import { TopBar, Toast } from "@/components/UI";
 import TabBar from "@/components/TabBar";
 import { fmt, todayISO, CURRENCY, COUNTRY, type Delivery } from "@/lib/helpers";
+import { Truck, Plus, Save, User, Package } from "lucide-react";
 
 export default function DeliveriesPage() {
   const [date, setDate] = useState(todayISO());
@@ -86,7 +87,7 @@ export default function DeliveriesPage() {
 
   return (
     <div className="shell">
-      <TopBar title="Livraisons" />
+      <TopBar title="Livraisons" icon={<Truck />} />
       <div className="page">
         <div className="split">
           <div className="panel-form">
@@ -134,7 +135,8 @@ export default function DeliveriesPage() {
                 />
               </label>
               <button className="btn ghost" onClick={addLine}>
-                + Ajouter à la liste
+                <Plus />
+                <span>Ajouter à la liste</span>
               </button>
 
               {pending.length > 0 && (
@@ -145,7 +147,10 @@ export default function DeliveriesPage() {
                       <span className="amt mono">
                         {fmt(p.amount)} {CURRENCY}
                       </span>
-                      <span style={{ fontSize: "0.78rem", color: "var(--ink-soft)" }}>{p.agent}</span>
+                      <span style={{ fontSize: "0.78rem", color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 4 }}>
+                        <User size={13} />
+                        {p.agent}
+                      </span>
                       <button className="x" onClick={() => removeLine(i)} aria-label="Retirer">
                         ×
                       </button>
@@ -166,7 +171,8 @@ export default function DeliveriesPage() {
                 disabled={saving || pending.length === 0}
                 style={{ marginTop: 10 }}
               >
-                {saving ? "Enregistrement…" : `Enregistrer ${pending.length || ""}`.trim()}
+                <Save />
+                <span>{saving ? "Enregistrement…" : `Enregistrer ${pending.length || ""}`.trim()}</span>
               </button>
             </div>
           </div>
@@ -184,9 +190,14 @@ export default function DeliveriesPage() {
               <div className="ledger">
                 {today.map((d) => (
                   <div className="lrow" key={d.id}>
-                    <div className="meta">
-                      <span className="t">{d.agent || "Agent"}</span>
-                      <span className="d">Livraison encaissée</span>
+                    <div className="meta" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <span className="icon-badge">
+                        <Package />
+                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span className="t">{d.agent || "Agent"}</span>
+                        <span className="d">Livraison encaissée</span>
+                      </div>
                     </div>
                     <span className="amt mono">
                       {fmt(Number(d.amount_collected))} {CURRENCY}

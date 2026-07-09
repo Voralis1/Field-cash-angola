@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase-browser";
 import { TopBar, Toast } from "@/components/UI";
 import TabBar from "@/components/TabBar";
 import { fmt, todayISO, CURRENCY, COUNTRY, type Charge } from "@/lib/helpers";
+import { Receipt, Save, ReceiptText } from "lucide-react";
 
 const CATEGORIES = ["Gasoil", "Agent", "Import", "Autre"];
 
@@ -59,7 +60,7 @@ export default function ChargesPage() {
 
   return (
     <div className="shell">
-      <TopBar title="Charges externes" />
+      <TopBar title="Charges externes" icon={<Receipt />} />
       <div className="page">
         <div className="split">
           <div className="panel-form">
@@ -96,7 +97,8 @@ export default function ChargesPage() {
                 />
               </label>
               <button className="btn" onClick={save} disabled={saving}>
-                {saving ? "Enregistrement…" : "Enregistrer la charge"}
+                <Save />
+                <span>{saving ? "Enregistrement…" : "Enregistrer la charge"}</span>
               </button>
             </div>
           </div>
@@ -112,11 +114,16 @@ export default function ChargesPage() {
               <div className="ledger">
                 {recent.map((c) => (
                   <div className="lrow" key={c.id}>
-                    <div className="meta">
-                      <span className="t">{c.description || c.category}</span>
-                      <span className="d">
-                        {c.charge_date} · {c.category}
+                    <div className="meta" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <span className="icon-badge rust">
+                        <ReceiptText />
                       </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span className="t">{c.description || c.category}</span>
+                        <span className="d">
+                          {c.charge_date} · {c.category}
+                        </span>
+                      </div>
                     </div>
                     <span className="amt mono" style={{ color: "var(--rust)" }}>
                       −{fmt(Number(c.amount))} {CURRENCY}

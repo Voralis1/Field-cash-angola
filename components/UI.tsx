@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
+import { LogOut } from "lucide-react";
 
-export function TopBar({ title }: { title: string }) {
+export function TopBar({ title, icon }: { title: string; icon?: ReactNode }) {
   async function signOut() {
     const { createClient } = await import("@/lib/supabase-browser");
     await createClient().auth.signOut();
@@ -10,24 +11,16 @@ export function TopBar({ title }: { title: string }) {
   }
   return (
     <header className="topbar">
-      <div>
-        <h1>{title}</h1>
-        <div className="sub">Field Cash · Angola</div>
+      <div className="titlewrap">
+        {icon && <span className="ticon">{icon}</span>}
+        <div>
+          <h1>{title}</h1>
+          <div className="sub">Field Cash · Angola</div>
+        </div>
       </div>
-      <button
-        onClick={signOut}
-        style={{
-          background: "transparent",
-          border: "1px solid rgba(255,255,255,0.3)",
-          color: "var(--paper)",
-          borderRadius: 8,
-          padding: "5px 10px",
-          fontSize: "0.72rem",
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        Sortir
+      <button className="signout" onClick={signOut}>
+        <LogOut />
+        <span>Sortir</span>
       </button>
     </header>
   );

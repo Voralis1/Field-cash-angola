@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase-browser";
 import { TopBar, Toast } from "@/components/UI";
 import TabBar from "@/components/TabBar";
 import { fmt, todayISO, CURRENCY, COUNTRY, type Remittance } from "@/lib/helpers";
+import { Send, ArrowUpRight } from "lucide-react";
 
 const METHODS = ["USDT", "Virement bancaire", "Autre"];
 
@@ -57,7 +58,7 @@ export default function RemittancesPage() {
 
   return (
     <div className="shell">
-      <TopBar title="Remises / rapatriement" />
+      <TopBar title="Remises / rapatriement" icon={<Send />} />
       <div className="page">
         <div className="split">
           <div className="panel-form">
@@ -86,7 +87,8 @@ export default function RemittancesPage() {
                 />
               </label>
               <button className="btn" onClick={save} disabled={saving}>
-                {saving ? "Enregistrement…" : "Enregistrer la remise"}
+                <Send />
+                <span>{saving ? "Enregistrement…" : "Enregistrer la remise"}</span>
               </button>
             </div>
           </div>
@@ -102,9 +104,14 @@ export default function RemittancesPage() {
               <div className="ledger">
                 {recent.map((r) => (
                   <div className="lrow" key={r.id}>
-                    <div className="meta">
-                      <span className="t">{r.method}</span>
-                      <span className="d">{r.remit_date}</span>
+                    <div className="meta" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <span className="icon-badge green">
+                        <ArrowUpRight />
+                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span className="t">{r.method}</span>
+                        <span className="d">{r.remit_date}</span>
+                      </div>
                     </div>
                     <span className="amt mono" style={{ color: "var(--green)" }}>
                       {fmt(Number(r.amount))} {CURRENCY}

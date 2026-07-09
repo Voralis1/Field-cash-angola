@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Mail, Lock, LogIn, AlertCircle } from "lucide-react";
+import CourierIllustration from "@/components/CourierIllustration";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -26,38 +28,61 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-wrap">
-      <div className="login-card">
+    <div className="login-page">
+      <div className="login-hero">
+        <div className="blob b1" />
+        <div className="blob b2" />
+        <CourierIllustration />
         <div className="brand">
           <div className="mark">Field Cash</div>
           <div className="tag">Suivi quotidien · Angola</div>
         </div>
-        <form className="card" onSubmit={signIn}>
-          <label className="field">
-            <span className="cap">Email</span>
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
-          <label className="field">
-            <span className="cap">Mot de passe</span>
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </label>
-          {err && <div className="err-text">{err}</div>}
-          <button className="btn" disabled={busy} style={{ marginTop: 8 }}>
-            {busy ? "Connexion…" : "Se connecter"}
-          </button>
-        </form>
+      </div>
+
+      <div className="login-form-side">
+        <div className="login-card">
+          <form className="card" onSubmit={signIn}>
+            <div className="form-title">Bon retour</div>
+            <div className="form-sub">Connecte-toi pour gérer la caisse du jour.</div>
+
+            <label className="field">
+              <span className="cap">Email</span>
+              <div className="field-icon">
+                <Mail />
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </label>
+            <label className="field">
+              <span className="cap">Mot de passe</span>
+              <div className="field-icon">
+                <Lock />
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </label>
+            {err && (
+              <div className="err-text">
+                <AlertCircle />
+                {err}
+              </div>
+            )}
+            <button className="btn" disabled={busy} style={{ marginTop: 8 }}>
+              <LogIn />
+              <span>{busy ? "Connexion…" : "Se connecter"}</span>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

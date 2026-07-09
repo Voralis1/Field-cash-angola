@@ -5,6 +5,15 @@ import { createClient } from "@/lib/supabase-browser";
 import { TopBar } from "@/components/UI";
 import TabBar from "@/components/TabBar";
 import { fmt, CURRENCY, COUNTRY, type DeliveryParams } from "@/lib/helpers";
+import {
+  LayoutDashboard,
+  Wallet,
+  Package,
+  Fuel,
+  Receipt,
+  Send,
+  PiggyBank,
+} from "lucide-react";
 
 type Range = "7" | "30" | "all" | "custom";
 
@@ -85,7 +94,7 @@ export default function HomePage() {
 
   return (
     <div className="shell">
-      <TopBar title="Résumé" />
+      <TopBar title="Résumé" icon={<LayoutDashboard />} />
       <div className="page">
         <div style={{ display: "flex", gap: 8, marginBottom: range === "custom" ? 10 : 16, flexWrap: "wrap" }}>
           {(["7", "30", "all", "custom"] as Range[]).map((r) => (
@@ -121,39 +130,57 @@ export default function HomePage() {
           <>
             <div className="stat-row">
               <div className="stat green">
-                <div className="label">Total encaissé</div>
+                <div className="top-row">
+                  <div className="label">Total encaissé</div>
+                  <span className="icon-badge green"><Wallet /></span>
+                </div>
                 <div className="value mono">
                   {fmt(totals.collected)}
                   <span className="unit">{CURRENCY}</span>
                 </div>
               </div>
               <div className="stat">
-                <div className="label">Livraisons</div>
+                <div className="top-row">
+                  <div className="label">Livraisons</div>
+                  <span className="icon-badge"><Package /></span>
+                </div>
                 <div className="value mono">{totals.nbDeliveries}</div>
               </div>
               <div className="stat rust">
-                <div className="label">Frais livraison</div>
+                <div className="top-row">
+                  <div className="label">Frais livraison</div>
+                  <span className="icon-badge rust"><Fuel /></span>
+                </div>
                 <div className="value mono">
                   {fmt(internalDeliveryCost)}
                   <span className="unit">{CURRENCY}</span>
                 </div>
               </div>
               <div className="stat rust">
-                <div className="label">Charges externes</div>
+                <div className="top-row">
+                  <div className="label">Charges externes</div>
+                  <span className="icon-badge rust"><Receipt /></span>
+                </div>
                 <div className="value mono">
                   {fmt(totals.charges)}
                   <span className="unit">{CURRENCY}</span>
                 </div>
               </div>
               <div className="stat">
-                <div className="label">Remis / rapatrié</div>
+                <div className="top-row">
+                  <div className="label">Remis / rapatrié</div>
+                  <span className="icon-badge"><Send /></span>
+                </div>
                 <div className="value mono">
                   {fmt(totals.remitted)}
                   <span className="unit">{CURRENCY}</span>
                 </div>
               </div>
               <div className={`stat ${held >= 0 ? "amber" : "rust"}`}>
-                <div className="label">Montant restant</div>
+                <div className="top-row">
+                  <div className="label">Montant restant</div>
+                  <span className={`icon-badge ${held >= 0 ? "amber" : "rust"}`}><PiggyBank /></span>
+                </div>
                 <div className="value mono">
                   {fmt(held)}
                   <span className="unit">{CURRENCY}</span>
