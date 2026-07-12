@@ -13,6 +13,7 @@ export default function ChargesPage() {
   const [date, setDate] = useState(todayISO());
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState(CATEGORIES[0]);
+  const [otherCategory, setOtherCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind?: "ok" | "err" } | null>(null);
@@ -38,13 +39,17 @@ export default function ChargesPage() {
       setToast({ msg: "Montant invalide", kind: "err" });
       return;
     }
+    if (category === "Autre" && !otherCategory.trim()) {
+      setToast({ msg: "Précise la catégorie", kind: "err" });
+      return;
+    }
     setSaving(true);
     const supabase = createClient();
     const { error } = await supabase.from("field_charges").insert({
       country: COUNTRY,
       charge_date: date,
       description: description.trim() || null,
-      category,
+      category: category === "Autre" ? otherCategory.trim() : category,
       amount: v,
     });
     setSaving(false);
@@ -54,6 +59,7 @@ export default function ChargesPage() {
     }
     setAmount("");
     setDescription("");
+    setOtherCategory("");
     setToast({ msg: "Charge enregistrée" });
     load();
   }
@@ -77,6 +83,16 @@ export default function ChargesPage() {
                   ))}
                 </select>
               </label>
+              {category === "Autre" && (
+                <label className="field">
+                  <span className="cap">Précise la catégorie</span>
+                  <input
+                    value={otherCategory}
+                    onChange={(e) => setOtherCategory(e.target.value)}
+                    placeholder="Ex. réparation véhicule"
+                  />
+                </label>
+              )}
               <label className="field">
                 <span className="cap">Description</span>
                 <input

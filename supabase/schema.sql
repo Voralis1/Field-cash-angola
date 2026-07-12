@@ -34,6 +34,7 @@ create table if not exists field_deliveries (
   delivery_date date not null,                  -- date the cash was collected
   agent text,                                   -- delivery agent name/label
   amount_collected numeric(18,2) not null,      -- in local currency
+  delivery_fee numeric(18,2) not null default 0,-- fee charged for this delivery (varies per delivery)
   created_at timestamptz not null default now()
 );
 create index if not exists idx_field_deliveries_date on field_deliveries (country, delivery_date);
@@ -138,7 +139,8 @@ create or replace view field_daily_recap as
 with deliveries as (
   select country, delivery_date as d,
          sum(amount_collected) as collected,
-         count(*) as nb_deliveries
+         count(*) as nb_deliveries,
+         sum(delivery_fee) as delivery_fees
   from field_deliveries group by country, delivery_date
 ),
 charges as (
@@ -163,9 +165,8 @@ select
   coalesce(deliveries.collected, 0)            as collected,
   coalesce(deliveries.nb_deliveries, 0)        as nb_deliveries,
   coalesce(agents.agents_count, 1)             as agents_count,
-  -- internal delivery cost = (agent + manager commission) * nb + fuel * agents
-  ( (p.commission_agent + p.commission_manager) * coalesce(deliveries.nb_deliveries, 0)
-    + p.fuel_per_agent * coalesce(agents.agents_count, 1) ) as internal_delivery_cost,
+  -- internal delivery cost = sum of the actual delivery_fee entered per delivery (not fixed)
+  coalesce(deliveries.delivery_fees, 0)        as internal_delivery_cost,
   coalesce(charges.charges, 0)                 as external_charges,
   coalesce(remits.remitted, 0)                 as remitted
 from days
@@ -173,5 +174,4 @@ left join deliveries on deliveries.country = days.country and deliveries.d = day
 left join charges     on charges.country     = days.country and charges.d     = days.d
 left join remits      on remits.country      = days.country and remits.d      = days.d
 left join agents      on agents.country      = days.country and agents.d      = days.d
-left join field_delivery_params p on p.country = days.country
 order by days.country, days.d;

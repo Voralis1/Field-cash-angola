@@ -49,7 +49,7 @@ export async function GET(request: Request) {
   const [{ data: recap, error: recapError }, { data: params, error: paramsError }] =
     await Promise.all([
       recapQ,
-      admin.from("field_delivery_params").select("*").eq("country", country).maybeSingle(),
+      admin.from("field_delivery_params").select("currency").eq("country", country).maybeSingle(),
     ]);
 
   if (recapError || paramsError) {
@@ -99,13 +99,6 @@ export async function GET(request: Request) {
     country,
     currency: params?.currency ?? "AOA",
     range: { from, to: to ?? null },
-    params: params
-      ? {
-          commission_agent: Number(params.commission_agent),
-          commission_manager: Number(params.commission_manager),
-          fuel_per_agent: Number(params.fuel_per_agent),
-        }
-      : null,
     totals,
     daily,
   });

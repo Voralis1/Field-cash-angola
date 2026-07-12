@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { TopBar } from "@/components/UI";
 import TabBar from "@/components/TabBar";
-import { fmt, CURRENCY, COUNTRY, type DeliveryParams } from "@/lib/helpers";
+import { fmt, CURRENCY } from "@/lib/helpers";
 import {
   LayoutDashboard,
   Wallet,
@@ -13,9 +13,11 @@ import {
   Receipt,
   Send,
   PiggyBank,
+  Trophy,
 } from "lucide-react";
 
 type Range = "7" | "30" | "all" | "custom";
+type DriverStat = { agent: string; count: number };
 
 export default function HomePage() {
   const [range, setRange] = useState<Range>("30");
@@ -25,15 +27,11 @@ export default function HomePage() {
   const [totals, setTotals] = useState({
     collected: 0,
     nbDeliveries: 0,
+    deliveryFees: 0,
     charges: 0,
     remitted: 0,
-    agentDays: 0,
   });
-  const [params, setParams] = useState<DeliveryParams>({
-    commission_agent: 500,
-    commission_manager: 2000,
-    fuel_per_agent: 2000,
-  });
+  const [driverStats, setDriverStats] = useState<DriverStat[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -48,35 +46,37 @@ export default function HomePage() {
       since = new Date(Date.now() - Number(range) * 86400000).toISOString().slice(0, 10);
     }
 
-    let delsQ = supabase.from("field_deliveries").select("amount_collected, delivery_date").gte("delivery_date", since);
+    let delsQ = supabase
+      .from("field_deliveries")
+      .select("amount_collected, delivery_date, agent, delivery_fee")
+      .gte("delivery_date", since);
     let chgsQ = supabase.from("field_charges").select("amount, charge_date").gte("charge_date", since);
     let remsQ = supabase.from("field_remittances").select("amount, remit_date").gte("remit_date", since);
-    let agentsQ = supabase.from("field_agent_days").select("agents_count, work_date").gte("work_date", since);
     if (until) {
       delsQ = delsQ.lte("delivery_date", until);
       chgsQ = chgsQ.lte("charge_date", until);
       remsQ = remsQ.lte("remit_date", until);
-      agentsQ = agentsQ.lte("work_date", until);
     }
 
-    const [{ data: dels }, { data: chgs }, { data: rems }, { data: agents }, { data: p }] =
-      await Promise.all([
-        delsQ,
-        chgsQ,
-        remsQ,
-        agentsQ,
-        supabase.from("field_delivery_params").select("*").eq("country", COUNTRY).single(),
-      ]);
-
-    if (p) setParams(p as DeliveryParams);
+    const [{ data: dels }, { data: chgs }, { data: rems }] = await Promise.all([delsQ, chgsQ, remsQ]);
 
     const collected = (dels ?? []).reduce((s, r: any) => s + Number(r.amount_collected), 0);
     const nbDeliveries = (dels ?? []).length;
+    const deliveryFees = (dels ?? []).reduce((s, r: any) => s + Number(r.delivery_fee), 0);
     const charges = (chgs ?? []).reduce((s, r: any) => s + Number(r.amount), 0);
     const remitted = (rems ?? []).reduce((s, r: any) => s + Number(r.amount), 0);
-    const agentDays = (agents ?? []).reduce((s, r: any) => s + Number(r.agents_count), 0);
 
-    setTotals({ collected, nbDeliveries, charges, remitted, agentDays });
+    const counts = new Map<string, number>();
+    for (const r of dels ?? []) {
+      const name = (r as any).agent?.trim() || "Agent";
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+    const drivers = Array.from(counts, ([agent, count]) => ({ agent, count })).sort(
+      (a, b) => b.count - a.count
+    );
+
+    setTotals({ collected, nbDeliveries, deliveryFees, charges, remitted });
+    setDriverStats(drivers);
     setLoading(false);
   }, [range, customFrom, customTo]);
 
@@ -84,13 +84,14 @@ export default function HomePage() {
     load();
   }, [load]);
 
-  // Internal delivery cost = (agent + manager commission) * nb deliveries + fuel * agent-days
-  const internalDeliveryCost =
-    (params.commission_agent + params.commission_manager) * totals.nbDeliveries +
-    params.fuel_per_agent * totals.agentDays;
+  // Internal delivery cost = sum of the actual delivery fees entered per delivery (not fixed)
+  const internalDeliveryCost = totals.deliveryFees;
 
   // Cash held by the manager = collected − internal delivery cost − external charges − remitted
   const held = totals.collected - internalDeliveryCost - totals.charges - totals.remitted;
+
+  const podium = driverStats.slice(0, 3);
+  const podiumOrder = [podium[1], podium[0], podium[2]].filter(Boolean) as DriverStat[];
 
   return (
     <div className="shell">
@@ -199,6 +200,56 @@ export default function HomePage() {
                 − Remis {fmt(totals.remitted)}<br />
                 <strong style={{ color: "var(--ink)" }}>= Restant {fmt(held)} {CURRENCY}</strong>
               </div>
+            </div>
+
+            <div className="card tight" style={{ marginTop: 4 }}>
+              <div
+                className="section-title"
+                style={{ margin: "2px 0 12px", display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <Trophy size={14} /> Top livreurs
+              </div>
+              {driverStats.length === 0 ? (
+                <div className="empty">
+                  <div className="small">Aucune livraison sur la période.</div>
+                </div>
+              ) : (
+                <>
+                  <div className="podium">
+                    {podiumOrder.map((d) => {
+                      const rank = podium.indexOf(d);
+                      const medal = rank === 0 ? "gold" : rank === 1 ? "silver" : "bronze";
+                      const emoji = rank === 0 ? "🥇" : rank === 1 ? "🥈" : "🥉";
+                      return (
+                        <div className={`podium-spot ${medal}`} key={d.agent}>
+                          <span className="podium-medal">{emoji}</span>
+                          <span className="podium-name">{d.agent}</span>
+                          <span className="podium-count">
+                            {d.count} livraison{d.count > 1 ? "s" : ""}
+                          </span>
+                          <div className="podium-bar">{d.count}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="ledger">
+                    {driverStats.map((d, i) => (
+                      <div className="lrow" key={d.agent}>
+                        <div className="meta" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                          <span className="icon-badge" style={{ fontSize: "0.78rem", fontWeight: 800 }}>
+                            {i + 1}
+                          </span>
+                          <span className="t">{d.agent}</span>
+                        </div>
+                        <span className="amt mono">
+                          {d.count} livraison{d.count > 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </>
         )}

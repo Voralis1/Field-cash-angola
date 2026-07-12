@@ -20,6 +20,7 @@ export type Delivery = {
   delivery_date: string;
   agent: string | null;
   amount_collected: number;
+  delivery_fee: number;
 };
 
 export type Charge = {
@@ -36,10 +37,4 @@ export type Remittance = {
   amount: number;
   method: string | null;
   status: string;
-};
-
-export type DeliveryParams = {
-  commission_agent: number;
-  commission_manager: number;
-  fuel_per_agent: number;
 };

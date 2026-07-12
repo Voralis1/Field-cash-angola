@@ -11,8 +11,9 @@ export default function DeliveriesPage() {
   const [date, setDate] = useState(todayISO());
   const [agent, setAgent] = useState("");
   const [amount, setAmount] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState("");
   const [agentsCount, setAgentsCount] = useState("1");
-  const [pending, setPending] = useState<{ agent: string; amount: number }[]>([]);
+  const [pending, setPending] = useState<{ agent: string; amount: number; fee: number }[]>([]);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind?: "ok" | "err" } | null>(null);
   const [today, setToday] = useState<Delivery[]>([]);
@@ -37,8 +38,10 @@ export default function DeliveriesPage() {
       setToast({ msg: "Montant invalide", kind: "err" });
       return;
     }
-    setPending((p) => [...p, { agent: agent.trim() || "Agent", amount: v }]);
+    const fee = Number(deliveryFee.replace(/\s/g, "")) || 0;
+    setPending((p) => [...p, { agent: agent.trim() || "Agent", amount: v, fee }]);
     setAmount("");
+    setDeliveryFee("");
   }
 
   function removeLine(i: number) {
@@ -58,6 +61,7 @@ export default function DeliveriesPage() {
       delivery_date: date,
       agent: p.agent,
       amount_collected: p.amount,
+      delivery_fee: p.fee,
     }));
 
     const { error } = await supabase.from("field_deliveries").insert(rows);
@@ -122,18 +126,32 @@ export default function DeliveriesPage() {
                   placeholder="Nom de l'agent"
                 />
               </label>
-              <label className="field">
-                <span className="cap">Montant encaissé ({CURRENCY})</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  className="mono"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addLine()}
-                  placeholder="0"
-                />
-              </label>
+              <div className="row2">
+                <label className="field">
+                  <span className="cap">Montant encaissé ({CURRENCY})</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    className="mono"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addLine()}
+                    placeholder="0"
+                  />
+                </label>
+                <label className="field">
+                  <span className="cap">Frais de livraison ({CURRENCY})</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    className="mono"
+                    value={deliveryFee}
+                    onChange={(e) => setDeliveryFee(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addLine()}
+                    placeholder="0"
+                  />
+                </label>
+              </div>
               <button className="btn ghost" onClick={addLine}>
                 <Plus />
                 <span>Ajouter à la liste</span>
@@ -151,6 +169,11 @@ export default function DeliveriesPage() {
                         <User size={13} />
                         {p.agent}
                       </span>
+                      {p.fee > 0 && (
+                        <span className="mono" style={{ fontSize: "0.78rem", color: "var(--rust)" }}>
+                          − {fmt(p.fee)} {CURRENCY}
+                        </span>
+                      )}
                       <button className="x" onClick={() => removeLine(i)} aria-label="Retirer">
                         ×
                       </button>
@@ -196,7 +219,11 @@ export default function DeliveriesPage() {
                       </span>
                       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                         <span className="t">{d.agent || "Agent"}</span>
-                        <span className="d">Livraison encaissée</span>
+                        <span className="d">
+                          Livraison encaissée
+                          {Number(d.delivery_fee) > 0 &&
+                            ` · frais ${fmt(Number(d.delivery_fee))} ${CURRENCY}`}
+                        </span>
                       </div>
                     </div>
                     <span className="amt mono">
