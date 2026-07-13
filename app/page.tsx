@@ -14,6 +14,7 @@ import {
   Send,
   PiggyBank,
   Trophy,
+  Users,
 } from "lucide-react";
 
 type Range = "7" | "30" | "all" | "custom";
@@ -87,8 +88,12 @@ export default function HomePage() {
   // Internal delivery cost = sum of the actual delivery fees entered per delivery (not fixed)
   const internalDeliveryCost = totals.deliveryFees;
 
-  // Cash held by the manager = collected − internal delivery cost − external charges − remitted
-  const held = totals.collected - internalDeliveryCost - totals.charges - totals.remitted;
+  // Commission agent = 2000 par commande livrée
+  const agentCommission = totals.nbDeliveries * 2000;
+
+  // Cash held by the manager = collected − internal delivery cost − external charges − remitted − commission agent
+  const held =
+    totals.collected - internalDeliveryCost - totals.charges - totals.remitted - agentCommission;
 
   const podium = driverStats.slice(0, 3);
   const podiumOrder = [podium[1], podium[0], podium[2]].filter(Boolean) as DriverStat[];
@@ -177,6 +182,16 @@ export default function HomePage() {
                   <span className="unit">{CURRENCY}</span>
                 </div>
               </div>
+              <div className="stat rust">
+                <div className="top-row">
+                  <div className="label">Commission agent</div>
+                  <span className="icon-badge rust"><Users /></span>
+                </div>
+                <div className="value mono">
+                  {fmt(agentCommission)}
+                  <span className="unit">{CURRENCY}</span>
+                </div>
+              </div>
               <div className={`stat ${held >= 0 ? "amber" : "rust"}`}>
                 <div className="top-row">
                   <div className="label">Montant restant</div>
@@ -198,6 +213,7 @@ export default function HomePage() {
                 − Frais livraison {fmt(internalDeliveryCost)}<br />
                 − Charges externes {fmt(totals.charges)}<br />
                 − Remis {fmt(totals.remitted)}<br />
+                − Commission agent {fmt(agentCommission)}<br />
                 <strong style={{ color: "var(--ink)" }}>= Restant {fmt(held)} {CURRENCY}</strong>
               </div>
             </div>
