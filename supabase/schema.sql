@@ -36,6 +36,7 @@ create table if not exists field_deliveries (
   order_id text,                                -- ID de la commande
   amount_collected numeric(18,2) not null,      -- in local currency
   delivery_fee numeric(18,2) not null default 0,-- fee charged for this delivery (varies per delivery)
+  comment text,                                 -- commentaire libre
   created_at timestamptz not null default now()
 );
 create index if not exists idx_field_deliveries_date on field_deliveries (country, delivery_date);

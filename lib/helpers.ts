@@ -22,6 +22,7 @@ export type Delivery = {
   order_id: string | null;
   amount_collected: number;
   delivery_fee: number;
+  comment: string | null;
 };
 
 export type Charge = {

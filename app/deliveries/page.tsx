@@ -13,8 +13,9 @@ export default function DeliveriesPage() {
   const [orderId, setOrderId] = useState("");
   const [amount, setAmount] = useState("");
   const [deliveryFee, setDeliveryFee] = useState("");
+  const [comment, setComment] = useState("");
   const [pending, setPending] = useState<
-    { agent: string; orderId: string; amount: number; fee: number }[]
+    { agent: string; orderId: string; amount: number; fee: number; comment: string }[]
   >([]);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind?: "ok" | "err" } | null>(null);
@@ -47,11 +48,18 @@ export default function DeliveriesPage() {
     const fee = Number(deliveryFee.replace(/\s/g, "")) || 0;
     setPending((p) => [
       ...p,
-      { agent: agent.trim() || "Livreur", orderId: orderId.trim(), amount: v, fee },
+      {
+        agent: agent.trim() || "Livreur",
+        orderId: orderId.trim(),
+        amount: v,
+        fee,
+        comment: comment.trim(),
+      },
     ]);
     setOrderId("");
     setAmount("");
     setDeliveryFee("");
+    setComment("");
   }
 
   function removeLine(i: number) {
@@ -73,6 +81,7 @@ export default function DeliveriesPage() {
       order_id: p.orderId,
       amount_collected: p.amount,
       delivery_fee: p.fee,
+      comment: p.comment || null,
     }));
 
     const { error } = await supabase.from("field_deliveries").insert(rows);
@@ -154,6 +163,15 @@ export default function DeliveriesPage() {
                   />
                 </label>
               </div>
+              <label className="field">
+                <span className="cap">Commentaire</span>
+                <input
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addLine()}
+                  placeholder="Optionnel"
+                />
+              </label>
               <button className="btn ghost" onClick={addLine}>
                 <Plus />
                 <span>Ajouter à la liste</span>
@@ -174,6 +192,11 @@ export default function DeliveriesPage() {
                       <span className="mono" style={{ fontSize: "0.78rem", color: "var(--ink-soft)" }}>
                         #{p.orderId}
                       </span>
+                      {p.comment && (
+                        <span style={{ fontSize: "0.78rem", color: "var(--ink-soft)", fontStyle: "italic" }}>
+                          {p.comment}
+                        </span>
+                      )}
                       {p.fee > 0 && (
                         <span className="mono" style={{ fontSize: "0.78rem", color: "var(--rust)" }}>
                           − {fmt(p.fee)} {CURRENCY}
@@ -228,6 +251,7 @@ export default function DeliveriesPage() {
                           {d.order_id ? `#${d.order_id}` : "Livraison encaissée"}
                           {Number(d.delivery_fee) > 0 &&
                             ` · frais ${fmt(Number(d.delivery_fee))} ${CURRENCY}`}
+                          {d.comment && ` · ${d.comment}`}
                         </span>
                       </div>
                     </div>
