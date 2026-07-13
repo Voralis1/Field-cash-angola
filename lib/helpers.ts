@@ -19,6 +19,7 @@ export type Delivery = {
   id: string;
   delivery_date: string;
   agent: string | null;
+  order_id: string | null;
   amount_collected: number;
   delivery_fee: number;
 };

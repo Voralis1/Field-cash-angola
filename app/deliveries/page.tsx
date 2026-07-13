@@ -10,10 +10,13 @@ import { Truck, Plus, Save, User, Package } from "lucide-react";
 export default function DeliveriesPage() {
   const [date, setDate] = useState(todayISO());
   const [agent, setAgent] = useState("");
+  const [orderId, setOrderId] = useState("");
   const [amount, setAmount] = useState("");
   const [deliveryFee, setDeliveryFee] = useState("");
   const [agentsCount, setAgentsCount] = useState("1");
-  const [pending, setPending] = useState<{ agent: string; amount: number; fee: number }[]>([]);
+  const [pending, setPending] = useState<
+    { agent: string; orderId: string; amount: number; fee: number }[]
+  >([]);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind?: "ok" | "err" } | null>(null);
   const [today, setToday] = useState<Delivery[]>([]);
@@ -33,13 +36,21 @@ export default function DeliveriesPage() {
   }, [loadToday]);
 
   function addLine() {
+    if (!orderId.trim()) {
+      setToast({ msg: "ID de la commande requis", kind: "err" });
+      return;
+    }
     const v = Number(amount.replace(/\s/g, ""));
     if (!v || v <= 0) {
       setToast({ msg: "Montant invalide", kind: "err" });
       return;
     }
     const fee = Number(deliveryFee.replace(/\s/g, "")) || 0;
-    setPending((p) => [...p, { agent: agent.trim() || "Agent", amount: v, fee }]);
+    setPending((p) => [
+      ...p,
+      { agent: agent.trim() || "Agent", orderId: orderId.trim(), amount: v, fee },
+    ]);
+    setOrderId("");
     setAmount("");
     setDeliveryFee("");
   }
@@ -60,6 +71,7 @@ export default function DeliveriesPage() {
       country: COUNTRY,
       delivery_date: date,
       agent: p.agent,
+      order_id: p.orderId,
       amount_collected: p.amount,
       delivery_fee: p.fee,
     }));
@@ -119,6 +131,15 @@ export default function DeliveriesPage() {
                 Ajouter une livraison encaissée
               </div>
               <label className="field">
+                <span className="cap">ID de la commande</span>
+                <input
+                  value={orderId}
+                  onChange={(e) => setOrderId(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addLine()}
+                  placeholder="Ex: CMD-00123"
+                />
+              </label>
+              <label className="field">
                 <span className="cap">Agent</span>
                 <input
                   value={agent}
@@ -168,6 +189,9 @@ export default function DeliveriesPage() {
                       <span style={{ fontSize: "0.78rem", color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 4 }}>
                         <User size={13} />
                         {p.agent}
+                      </span>
+                      <span className="mono" style={{ fontSize: "0.78rem", color: "var(--ink-soft)" }}>
+                        #{p.orderId}
                       </span>
                       {p.fee > 0 && (
                         <span className="mono" style={{ fontSize: "0.78rem", color: "var(--rust)" }}>
@@ -220,7 +244,7 @@ export default function DeliveriesPage() {
                       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                         <span className="t">{d.agent || "Agent"}</span>
                         <span className="d">
-                          Livraison encaissée
+                          {d.order_id ? `#${d.order_id}` : "Livraison encaissée"}
                           {Number(d.delivery_fee) > 0 &&
                             ` · frais ${fmt(Number(d.delivery_fee))} ${CURRENCY}`}
                         </span>

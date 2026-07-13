@@ -33,6 +33,7 @@ create table if not exists field_deliveries (
   country text not null default 'Angola',
   delivery_date date not null,                  -- date the cash was collected
   agent text,                                   -- delivery agent name/label
+  order_id text,                                -- ID de la commande
   amount_collected numeric(18,2) not null,      -- in local currency
   delivery_fee numeric(18,2) not null default 0,-- fee charged for this delivery (varies per delivery)
   created_at timestamptz not null default now()
