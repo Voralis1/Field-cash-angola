@@ -13,7 +13,6 @@ export default function DeliveriesPage() {
   const [orderId, setOrderId] = useState("");
   const [amount, setAmount] = useState("");
   const [deliveryFee, setDeliveryFee] = useState("");
-  const [agentsCount, setAgentsCount] = useState("1");
   const [pending, setPending] = useState<
     { agent: string; orderId: string; amount: number; fee: number }[]
   >([]);
@@ -36,8 +35,8 @@ export default function DeliveriesPage() {
   }, [loadToday]);
 
   function addLine() {
-    if (!orderId.trim()) {
-      setToast({ msg: "ID de la commande requis", kind: "err" });
+    if (!/^\d+$/.test(orderId.trim())) {
+      setToast({ msg: "ID de la commande invalide (chiffres uniquement)", kind: "err" });
       return;
     }
     const v = Number(amount.replace(/\s/g, ""));
@@ -48,7 +47,7 @@ export default function DeliveriesPage() {
     const fee = Number(deliveryFee.replace(/\s/g, "")) || 0;
     setPending((p) => [
       ...p,
-      { agent: agent.trim() || "Agent", orderId: orderId.trim(), amount: v, fee },
+      { agent: agent.trim() || "Livreur", orderId: orderId.trim(), amount: v, fee },
     ]);
     setOrderId("");
     setAmount("");
@@ -78,16 +77,6 @@ export default function DeliveriesPage() {
 
     const { error } = await supabase.from("field_deliveries").insert(rows);
 
-    // upsert the number of active agents for that day (drives fuel cost)
-    if (!error) {
-      await supabase
-        .from("field_agent_days")
-        .upsert(
-          { country: COUNTRY, work_date: date, agents_count: Number(agentsCount) || 1 },
-          { onConflict: "country,work_date" }
-        );
-    }
-
     setSaving(false);
     if (error) {
       setToast({ msg: "Erreur d'enregistrement", kind: "err" });
@@ -108,22 +97,10 @@ export default function DeliveriesPage() {
         <div className="split">
           <div className="panel-form">
             <div className="card">
-              <div className="row2">
-                <label className="field" style={{ marginBottom: 0 }}>
-                  <span className="cap">Date</span>
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-                </label>
-                <label className="field" style={{ marginBottom: 0 }}>
-                  <span className="cap">Agents actifs</span>
-                  <input
-                    type="number"
-                    min={1}
-                    className="mono"
-                    value={agentsCount}
-                    onChange={(e) => setAgentsCount(e.target.value)}
-                  />
-                </label>
-              </div>
+              <label className="field" style={{ marginBottom: 0 }}>
+                <span className="cap">Date</span>
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </label>
             </div>
 
             <div className="card">
@@ -133,18 +110,22 @@ export default function DeliveriesPage() {
               <label className="field">
                 <span className="cap">ID de la commande</span>
                 <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="\d*"
+                  className="mono"
                   value={orderId}
-                  onChange={(e) => setOrderId(e.target.value)}
+                  onChange={(e) => setOrderId(e.target.value.replace(/\D/g, ""))}
                   onKeyDown={(e) => e.key === "Enter" && addLine()}
-                  placeholder="Ex: CMD-00123"
+                  placeholder="Ex: 00123"
                 />
               </label>
               <label className="field">
-                <span className="cap">Agent</span>
+                <span className="cap">Livreur</span>
                 <input
                   value={agent}
                   onChange={(e) => setAgent(e.target.value)}
-                  placeholder="Nom de l'agent"
+                  placeholder="Nom du livreur"
                 />
               </label>
               <div className="row2">
@@ -242,7 +223,7 @@ export default function DeliveriesPage() {
                         <Package />
                       </span>
                       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        <span className="t">{d.agent || "Agent"}</span>
+                        <span className="t">{d.agent || "Livreur"}</span>
                         <span className="d">
                           {d.order_id ? `#${d.order_id}` : "Livraison encaissée"}
                           {Number(d.delivery_fee) > 0 &&
