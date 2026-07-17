@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase-browser";
 import { TopBar, Toast, Modal } from "@/components/UI";
 import TabBar from "@/components/TabBar";
 import { fmt, todayISO, CURRENCY, COUNTRY, type Remittance } from "@/lib/helpers";
-import { Send, ArrowUpRight, Pencil, Save } from "lucide-react";
+import { Send, ArrowUpRight, Pencil, Save, Trash2 } from "lucide-react";
 
 const METHODS = ["USDT", "Virement bancaire", "Autre"];
 
@@ -92,6 +92,18 @@ export default function RemittancesPage() {
     load();
   }
 
+  async function remove(r: Remittance) {
+    if (!window.confirm("Supprimer cette remise ?")) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("field_remittances").delete().eq("id", r.id);
+    if (error) {
+      setToast({ msg: "Erreur de suppression", kind: "err" });
+      return;
+    }
+    setToast({ msg: "Remise supprimée" });
+    load();
+  }
+
   return (
     <div className="shell">
       <TopBar title="Remises / rapatriement" icon={<Send />} />
@@ -155,6 +167,9 @@ export default function RemittancesPage() {
                       </span>
                       <button className="edit-btn" onClick={() => openEdit(r)} aria-label="Modifier">
                         <Pencil />
+                      </button>
+                      <button className="delete-btn" onClick={() => remove(r)} aria-label="Supprimer">
+                        <Trash2 />
                       </button>
                     </div>
                   </div>

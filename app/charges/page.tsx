@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase-browser";
 import { TopBar, Toast, Modal } from "@/components/UI";
 import TabBar from "@/components/TabBar";
 import { fmt, todayISO, CURRENCY, COUNTRY, type Charge } from "@/lib/helpers";
-import { Receipt, Save, ReceiptText, Pencil } from "lucide-react";
+import { Receipt, Save, ReceiptText, Pencil, Trash2 } from "lucide-react";
 
 const CATEGORIES = ["Gasoil", "Agent", "Import", "Autre"];
 
@@ -114,6 +114,18 @@ export default function ChargesPage() {
     load();
   }
 
+  async function remove(c: Charge) {
+    if (!window.confirm("Supprimer cette charge ?")) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("field_charges").delete().eq("id", c.id);
+    if (error) {
+      setToast({ msg: "Erreur de suppression", kind: "err" });
+      return;
+    }
+    setToast({ msg: "Charge supprimée" });
+    load();
+  }
+
   return (
     <div className="shell">
       <TopBar title="Charges externes" icon={<Receipt />} />
@@ -197,6 +209,9 @@ export default function ChargesPage() {
                       </span>
                       <button className="edit-btn" onClick={() => openEdit(c)} aria-label="Modifier">
                         <Pencil />
+                      </button>
+                      <button className="delete-btn" onClick={() => remove(c)} aria-label="Supprimer">
+                        <Trash2 />
                       </button>
                     </div>
                   </div>

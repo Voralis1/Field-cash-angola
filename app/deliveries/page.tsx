@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase-browser";
 import { TopBar, Toast, Modal } from "@/components/UI";
 import TabBar from "@/components/TabBar";
 import { fmt, todayISO, CURRENCY, COUNTRY, type Delivery } from "@/lib/helpers";
-import { Truck, Plus, Save, User, Package, Pencil } from "lucide-react";
+import { Truck, Plus, Save, User, Package, Pencil, Trash2 } from "lucide-react";
 
 export default function DeliveriesPage() {
   const [date, setDate] = useState(todayISO());
@@ -147,6 +147,18 @@ export default function DeliveriesPage() {
     }
     setEditing(null);
     setToast({ msg: "Livraison modifiée" });
+    loadToday();
+  }
+
+  async function remove(d: Delivery) {
+    if (!window.confirm("Supprimer cette livraison ?")) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("field_deliveries").delete().eq("id", d.id);
+    if (error) {
+      setToast({ msg: "Erreur de suppression", kind: "err" });
+      return;
+    }
+    setToast({ msg: "Livraison supprimée" });
     loadToday();
   }
 
@@ -315,6 +327,9 @@ export default function DeliveriesPage() {
                       </span>
                       <button className="edit-btn" onClick={() => openEdit(d)} aria-label="Modifier">
                         <Pencil />
+                      </button>
+                      <button className="delete-btn" onClick={() => remove(d)} aria-label="Supprimer">
+                        <Trash2 />
                       </button>
                     </div>
                   </div>

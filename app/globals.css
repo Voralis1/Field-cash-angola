@@ -196,6 +196,14 @@ input.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; 
 }
 .lrow .edit-btn:hover { background: #cfe8fb; }
 .lrow .edit-btn svg { width: 15px; height: 15px; stroke-width: 2.25; }
+.lrow .delete-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 10px; flex-shrink: 0;
+  background: var(--rust-soft); color: var(--rust);
+  border: none; cursor: pointer; transition: background 0.15s;
+}
+.lrow .delete-btn:hover { background: #ffd2da; }
+.lrow .delete-btn svg { width: 15px; height: 15px; stroke-width: 2.25; }
 
 /* ---------- Modal ---------- */
 .modal-overlay {
