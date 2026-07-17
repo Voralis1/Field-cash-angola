@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase-browser";
-import { TopBar, Toast } from "@/components/UI";
+import { TopBar, Toast, Modal } from "@/components/UI";
 import TabBar from "@/components/TabBar";
 import { fmt, todayISO, CURRENCY, COUNTRY, type Delivery } from "@/lib/helpers";
-import { Truck, Plus, Save, User, Package } from "lucide-react";
+import { Truck, Plus, Save, User, Package, Pencil } from "lucide-react";
 
 export default function DeliveriesPage() {
   const [date, setDate] = useState(todayISO());
@@ -20,6 +20,15 @@ export default function DeliveriesPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind?: "ok" | "err" } | null>(null);
   const [today, setToday] = useState<Delivery[]>([]);
+
+  const [editing, setEditing] = useState<Delivery | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editAgent, setEditAgent] = useState("");
+  const [editOrderId, setEditOrderId] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+  const [editFee, setEditFee] = useState("");
+  const [editComment, setEditComment] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
 
   const loadToday = useCallback(async () => {
     const supabase = createClient();
@@ -93,6 +102,51 @@ export default function DeliveriesPage() {
     }
     setPending([]);
     setToast({ msg: `${rows.length} livraison(s) enregistrée(s)` });
+    loadToday();
+  }
+
+  function openEdit(d: Delivery) {
+    setEditing(d);
+    setEditDate(d.delivery_date);
+    setEditAgent(d.agent || "");
+    setEditOrderId(d.order_id || "");
+    setEditAmount(String(d.amount_collected));
+    setEditFee(String(d.delivery_fee));
+    setEditComment(d.comment || "");
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    if (!/^\d+$/.test(editOrderId.trim())) {
+      setToast({ msg: "ID de la commande invalide (chiffres uniquement)", kind: "err" });
+      return;
+    }
+    const v = Number(editAmount.replace(/\s/g, ""));
+    if (!v || v <= 0) {
+      setToast({ msg: "Montant invalide", kind: "err" });
+      return;
+    }
+    const fee = Number(editFee.replace(/\s/g, "")) || 0;
+    setEditSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("field_deliveries")
+      .update({
+        delivery_date: editDate,
+        agent: editAgent.trim() || "Livreur",
+        order_id: editOrderId.trim(),
+        amount_collected: v,
+        delivery_fee: fee,
+        comment: editComment.trim() || null,
+      })
+      .eq("id", editing.id);
+    setEditSaving(false);
+    if (error) {
+      setToast({ msg: "Erreur de modification", kind: "err" });
+      return;
+    }
+    setEditing(null);
+    setToast({ msg: "Livraison modifiée" });
     loadToday();
   }
 
@@ -255,9 +309,14 @@ export default function DeliveriesPage() {
                         </span>
                       </div>
                     </div>
-                    <span className="amt mono">
-                      {fmt(Number(d.amount_collected))} {CURRENCY}
-                    </span>
+                    <div className="lrow-actions">
+                      <span className="amt mono">
+                        {fmt(Number(d.amount_collected))} {CURRENCY}
+                      </span>
+                      <button className="edit-btn" onClick={() => openEdit(d)} aria-label="Modifier">
+                        <Pencil />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -266,6 +325,72 @@ export default function DeliveriesPage() {
         </div>
       </div>
       {toast && <Toast msg={toast.msg} kind={toast.kind} onDone={() => setToast(null)} />}
+
+      {editing && (
+        <Modal title="Modifier la livraison" onClose={() => setEditing(null)}>
+          <label className="field">
+            <span className="cap">Date</span>
+            <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+          </label>
+          <label className="field">
+            <span className="cap">ID de la commande</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="\d*"
+              className="mono"
+              value={editOrderId}
+              onChange={(e) => setEditOrderId(e.target.value.replace(/\D/g, ""))}
+              placeholder="Ex: 00123"
+            />
+          </label>
+          <label className="field">
+            <span className="cap">Livreur</span>
+            <input
+              value={editAgent}
+              onChange={(e) => setEditAgent(e.target.value)}
+              placeholder="Nom du livreur"
+            />
+          </label>
+          <div className="row2">
+            <label className="field">
+              <span className="cap">Montant encaissé ({CURRENCY})</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                className="mono"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+                placeholder="0"
+              />
+            </label>
+            <label className="field">
+              <span className="cap">Frais de livraison ({CURRENCY})</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                className="mono"
+                value={editFee}
+                onChange={(e) => setEditFee(e.target.value)}
+                placeholder="0"
+              />
+            </label>
+          </div>
+          <label className="field">
+            <span className="cap">Commentaire</span>
+            <input
+              value={editComment}
+              onChange={(e) => setEditComment(e.target.value)}
+              placeholder="Optionnel"
+            />
+          </label>
+          <button className="btn" onClick={saveEdit} disabled={editSaving}>
+            <Save />
+            <span>{editSaving ? "Enregistrement…" : "Enregistrer les modifications"}</span>
+          </button>
+        </Modal>
+      )}
+
       <TabBar />
     </div>
   );

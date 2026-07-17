@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, X } from "lucide-react";
 
 export function TopBar({ title, icon }: { title: string; icon?: ReactNode }) {
   async function signOut() {
@@ -40,4 +40,28 @@ export function Toast({
     return () => clearTimeout(t);
   }, [onDone]);
   return <div className={`toast ${kind === "err" ? "err" : ""}`}>{msg}</div>;
+}
+
+export function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <span className="modal-title">{title}</span>
+          <button className="modal-close" onClick={onClose} aria-label="Fermer">
+            <X />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
 }

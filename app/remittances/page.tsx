@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase-browser";
-import { TopBar, Toast } from "@/components/UI";
+import { TopBar, Toast, Modal } from "@/components/UI";
 import TabBar from "@/components/TabBar";
 import { fmt, todayISO, CURRENCY, COUNTRY, type Remittance } from "@/lib/helpers";
-import { Send, ArrowUpRight } from "lucide-react";
+import { Send, ArrowUpRight, Pencil, Save } from "lucide-react";
 
 const METHODS = ["USDT", "Virement bancaire", "Autre"];
 
@@ -16,6 +16,12 @@ export default function RemittancesPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind?: "ok" | "err" } | null>(null);
   const [recent, setRecent] = useState<Remittance[]>([]);
+
+  const [editing, setEditing] = useState<Remittance | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editMethod, setEditMethod] = useState(METHODS[0]);
+  const [editDate, setEditDate] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -53,6 +59,36 @@ export default function RemittancesPage() {
     }
     setAmount("");
     setToast({ msg: "Remise enregistrée" });
+    load();
+  }
+
+  function openEdit(r: Remittance) {
+    setEditing(r);
+    setEditAmount(String(r.amount));
+    setEditMethod(r.method || METHODS[0]);
+    setEditDate(r.remit_date);
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    const v = Number(editAmount.replace(/\s/g, ""));
+    if (!v || v <= 0) {
+      setToast({ msg: "Montant invalide", kind: "err" });
+      return;
+    }
+    setEditSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("field_remittances")
+      .update({ remit_date: editDate, amount: v, method: editMethod })
+      .eq("id", editing.id);
+    setEditSaving(false);
+    if (error) {
+      setToast({ msg: "Erreur de modification", kind: "err" });
+      return;
+    }
+    setEditing(null);
+    setToast({ msg: "Remise modifiée" });
     load();
   }
 
@@ -113,9 +149,14 @@ export default function RemittancesPage() {
                         <span className="d">{r.remit_date}</span>
                       </div>
                     </div>
-                    <span className="amt mono" style={{ color: "var(--green)" }}>
-                      {fmt(Number(r.amount))} {CURRENCY}
-                    </span>
+                    <div className="lrow-actions">
+                      <span className="amt mono" style={{ color: "var(--green)" }}>
+                        {fmt(Number(r.amount))} {CURRENCY}
+                      </span>
+                      <button className="edit-btn" onClick={() => openEdit(r)} aria-label="Modifier">
+                        <Pencil />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -124,6 +165,39 @@ export default function RemittancesPage() {
         </div>
       </div>
       {toast && <Toast msg={toast.msg} kind={toast.kind} onDone={() => setToast(null)} />}
+
+      {editing && (
+        <Modal title="Modifier la remise" onClose={() => setEditing(null)}>
+          <label className="field">
+            <span className="cap">Date de remise</span>
+            <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+          </label>
+          <label className="field">
+            <span className="cap">Moyen</span>
+            <select value={editMethod} onChange={(e) => setEditMethod(e.target.value)}>
+              {METHODS.map((m) => (
+                <option key={m}>{m}</option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span className="cap">Montant remis ({CURRENCY})</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              className="mono"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+              placeholder="0"
+            />
+          </label>
+          <button className="btn" onClick={saveEdit} disabled={editSaving}>
+            <Save />
+            <span>{editSaving ? "Enregistrement…" : "Enregistrer les modifications"}</span>
+          </button>
+        </Modal>
+      )}
+
       <TabBar />
     </div>
   );

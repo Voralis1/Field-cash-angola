@@ -187,6 +187,48 @@ input.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; 
 .lrow .meta .d { font-size: 0.72rem; color: var(--ink-soft); font-weight: 600; }
 .lrow .meta .t { font-size: 0.94rem; font-weight: 600; }
 .lrow .amt { font-weight: 800; }
+.lrow .lrow-actions { display: flex; align-items: center; gap: 10px; }
+.lrow .edit-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 10px; flex-shrink: 0;
+  background: var(--accent-soft); color: var(--accent-2);
+  border: none; cursor: pointer; transition: background 0.15s;
+}
+.lrow .edit-btn:hover { background: #cfe8fb; }
+.lrow .edit-btn svg { width: 15px; height: 15px; stroke-width: 2.25; }
+
+/* ---------- Modal ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(15, 36, 56, 0.45);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0;
+  backdrop-filter: blur(2px);
+}
+.modal-card {
+  width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+  background: var(--paper); border-radius: 20px 20px 0 0;
+  padding: 18px 16px calc(24px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-lg);
+  animation: modal-up 0.18s ease-out;
+}
+@keyframes modal-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.modal-title { font-size: 1.02rem; font-weight: 800; color: var(--ink); }
+.modal-close {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+  background: #fff; border: 1px solid var(--line); color: var(--ink-soft); cursor: pointer;
+}
+.modal-close svg { width: 16px; height: 16px; }
+
+@media (min-width: 720px) {
+  .modal-overlay { align-items: center; padding: 24px; }
+  .modal-card { border-radius: 20px; }
+}
 
 /* ---------- Podium (top delivery agents) ---------- */
 .podium {
